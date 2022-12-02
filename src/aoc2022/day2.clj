@@ -102,3 +102,80 @@
   (solve-part1 input)
 
   )
+
+;; --- Part Two ---
+
+;; The Elf finishes helping with the tent and sneaks back over to you. "Anyway, the second column says how the round needs to end: X means you need to lose, Y means you need to end the round in a draw, and Z means you need to win. Good luck!"
+
+;; The total score is still calculated in the same way, but now you need to figure out what shape to choose so the round ends as indicated. The example above now goes like this:
+
+;;     In the first round, your opponent will choose Rock (A), and you need the round to end in a draw (Y), so you also choose Rock. This gives you a score of 1 + 3 = 4.
+;;     In the second round, your opponent will choose Paper (B), and you choose Rock so you lose (X) with a score of 1 + 0 = 1.
+;;     In the third round, you will defeat your opponent's Scissors with Rock for a score of 1 + 6 = 7.
+
+;; Now that you're correctly decrypting the ultra top secret strategy guide, you would get a total score of 12.
+
+;; Following the Elf's instructions for the second column, what would your total score be if everything goes exactly according to your strategy guide?
+
+
+(defn parse2
+  [s]
+  (->> s
+       str/split-lines
+       (map #(->> % (re-seq #"\S") (map (fn [c] (case c
+                                                  "A" :rock
+                                                  "B" :paper
+                                                  "C" :scissors
+                                                  "X" :loss
+                                                  "Y" :draw
+                                                  "Z" :win))) vec))))
+
+(deftest parse2-test
+  (let [result (parse2 sample)]
+    (is (= (first result) [:rock :draw]))))
+
+(defn move
+  [p]
+  (match p
+         [:rock :win] :paper
+         [:rock :loss] :scissors
+         [:paper :win] :scissors
+         [:paper :loss] :rock
+         [:scissors :win] :rock
+         [:scissors :loss] :paper
+         [opponent-move :draw] opponent-move))
+
+(defn score2
+  [p]
+  (let [my-move (move p)]
+    (+ (case my-move
+         :rock 1
+         :paper 2
+         :scissors 3)
+       (case (second p)
+         :loss 0
+         :draw 3
+         :win 6))))
+
+(deftest score2-test
+  (is (= (score2 (first (parse2 sample))) 4))
+  (is (= (score2 (second (parse2 sample))) 1))
+  (is (= (score2 (last (parse2 sample))) 7)))
+
+(defn total2
+  [g]
+  (->> g
+       (map score2)
+       (reduce +)))
+
+(deftest total2-test
+  (is (= (total2 (parse2 sample)) 12)))
+
+(defn solve-part2
+  [x]
+  (-> x parse2 total2))
+
+(comment
+  (solve-part2 input)
+
+  )
