@@ -40,19 +40,22 @@
   "mjqjpqmgbljsphdztnvjfqwrcgsmlb")
 
 (defn register
-  [x]
+  [n x]
   (->> x
-       (partition-all 4 1)
-       (map-indexed (fn [i cs] [(+ i 4) (= (distinct cs) cs)]))
+       (partition-all n 1)
+       (map-indexed (fn [i cs] [(+ i n) (= (distinct cs) cs)]))
        (some #(and (second %) %))
        first))
 
+(def register-message
+  (partial register 4))
+
 (deftest register-test
-  (is (= 7 (register sample))))
+  (is (= 7 (register 4 sample))))
 
 (defn solve-part1
   [x]
-  (register x))
+  (register-message x))
 
 (deftest solve-part1-test
   (is (= 7
@@ -63,5 +66,36 @@
 
 (comment
   (solve-part1 input)
+
+  )
+
+;; --- Part Two ---
+
+;; Your device's communication system is correctly detecting packets, but still isn't working. It looks like it also needs to look for messages.
+
+;; A start-of-message marker is just like a start-of-packet marker, except it consists of 14 distinct characters rather than 4.
+
+;; Here are the first positions of start-of-message markers for all of the above examples:
+
+;;     mjqjpqmgbljsphdztnvjfqwrcgsmlb: first marker after character 19
+;;     bvwbjplbgvbhsrlpgdmjqwftvncz: first marker after character 23
+;;     nppdvjthqldpwncqszvftbrmjlhg: first marker after character 23
+;;     nznrnfrfntjfmvfwmzdfjlvtqnbhcprsg: first marker after character 29
+;;     zcfzfwzzqfrljwzlrfnpqdbhtmscgvjw: first marker after character 26
+
+;; How many characters need to be processed before the first start-of-message marker is detected?
+
+(def register-packet
+  (partial register 14))
+
+(defn solve-part2
+  [x]
+  (register-packet x))
+
+(deftest solve-part2-test
+  (is (= 19
+         (solve-part2 sample))))
+(comment
+  (solve-part2 input)
 
   )
