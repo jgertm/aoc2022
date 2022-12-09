@@ -264,7 +264,7 @@ R 2")
 (defn parse
   [x]
   (->> x
-       (re-seq #"(\w) (\d)")
+       (re-seq #"(\w) (\d+)")
        (map (fn [[_ d n]] [(keyword d) (parse-long n)]))))
 
 (defn move
