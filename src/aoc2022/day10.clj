@@ -1,7 +1,8 @@
 (ns aoc2022.day10
   (:require
    [clojure.java.io :as io]
-   [clojure.test :refer [deftest is]]))
+   [clojure.test :refer [deftest is]]
+   [clojure.string :as str]))
 
 
 
@@ -162,36 +163,35 @@ noop")
 
 (defn interpret
   [insns]
-  (reductions
-   (fn [state insn]
-     (case (first insn)
-       :noop (update state :cycles inc)
-       :addx (-> state
-                 (update :cycles + 2)
-                 (update :x + (second insn)))))
-   {:x 1 :cycles 0}
-   insns))
+  (->> insns
+       (reductions
+        (fn [state insn]
+          (case (first insn)
+            :noop (update state :cycles inc)
+            :addx (-> state
+                      (update :cycles + 2)
+                      (update :x + (second insn)))))
+        {:x 1 :cycles 0})))
 
 (defn measure
   [n states]
   (->> states
        (take-while #(-> % :cycles (< n)))
        last
-       :x
-       (* n)))
+       :x))
 
 (deftest measure-test
-  (is (= 420 (measure 20 (interpret (parse sample)))))
-  (is (= 1140 (measure 60 (interpret (parse sample)))))
-  (is (= 1800 (measure 100 (interpret (parse sample)))))
-  (is (= 2940 (measure 140 (interpret (parse sample)))))
-  (is (= 2880 (measure 180 (interpret (parse sample)))))
-  (is (= 3960 (measure 220 (interpret (parse sample))))))
+  (is (= 21 (measure 20 (interpret (parse sample)))))
+  (is (= 19 (measure 60 (interpret (parse sample)))))
+  (is (= 18 (measure 100 (interpret (parse sample)))))
+  (is (= 21 (measure 140 (interpret (parse sample)))))
+  (is (= 16 (measure 180 (interpret (parse sample)))))
+  (is (= 18 (measure 220 (interpret (parse sample))))))
 
 (defn solve-part1
   [x]
   (->> [20 60 100 140 180 220]
-       (map #(measure % (->> x parse interpret)))
+       (map #(->> x parse interpret (measure %) (* %)))
        (reduce +)))
 
 (deftest solve-part1-test
@@ -205,4 +205,31 @@ noop")
 
   )
 
-(interpret (parse sample))
+(defn render
+  [x]
+  (->> 240
+       range
+       (reduce
+        (fn [acc i]
+          (let [value (measure (inc i) x)
+                sprite #{(dec value) value (inc value)}
+                pixel (mod i 40)]
+            (if (contains? sprite pixel)
+              (assoc acc i "#")
+              acc)))
+        (vec (repeat 240 ".")))
+       (partition 40)
+       (map (partial apply str))
+       (str/join "\n")))
+
+(defn solve-part2
+  [x]
+  (->> x
+       parse
+       interpret
+       render))
+
+(comment
+  (println (solve-part2 input))
+
+  )
