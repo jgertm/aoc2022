@@ -40,13 +40,15 @@ Monkey 3:
                   y (if (= y "old") (symbol y) (parse-long y))]
               (eval (list 'fn 'monkey-op ['old] (list (symbol op) x y)))))
           (parse-monkey [[l1 l2 l3 l4 l5 l6]]
-            [(->> l1 (re-find #"\d+") parse-long)
-             {:count     0
-              :inbox     (->> l2 (re-seq #"\d+") (map parse-long) vec)
-              :operation (->> l3 (re-find #"(old|[\d]+) ([*+]) (old|[\d]+)") next reify-op)
-              :test      #(zero? (mod % (->> l4 (re-find #"divisible by (\d+)") last parse-long)))
-              true       (->> l5 (re-find #"throw to monkey (\d+)") last parse-long)
-              false      (->> l6 (re-find #"throw to monkey (\d+)") last parse-long)}])]
+            (let [divisor (->> l4 (re-find #"divisible by (\d+)") last parse-long)]
+              [(->> l1 (re-find #"\d+") parse-long)
+               {:count     0
+                :inbox     (->> l2 (re-seq #"\d+") (map parse-long) vec)
+                :operation (->> l3 (re-find #"(old|[\d]+) ([*+]) (old|[\d]+)") next reify-op)
+                :divisor   divisor
+                :test      #(zero? (mod % divisor))
+                true       (->> l5 (re-find #"throw to monkey (\d+)") last parse-long)
+                false      (->> l6 (re-find #"throw to monkey (\d+)") last parse-long)}]))]
     (->> s
          str/split-lines
          (partition-by empty?)
@@ -54,15 +56,18 @@ Monkey 3:
          (map parse-monkey)
          (into {}))))
 
+(def ^:dynamic *div* nil)
+
 (defn turn
   [state id]
-  (let [{:keys [inbox operation test] :as monkey} (get state id)]
+  (let [pod (->> state vals (map :divisor) (reduce *))
+        {:keys [inbox operation test] :as monkey} (get state id)]
     (reduce
      (fn [state item]
-       (let [item (-> item operation (/ 3) Math/floor long)]
+       (let [item (-> item operation (/ *div*) long)]
          (-> state
              (update-in [id :count] inc)
-             (update-in [(get monkey (test item)) :inbox] conj item))))
+             (update-in [(get monkey (test item)) :inbox] conj (mod item pod)))))
      (assoc-in state [id :inbox] [])
      inbox)))
 
@@ -76,16 +81,22 @@ Monkey 3:
       (iterate state)
       (nth n)))
 
-(defn solve-part1
-  [x]
+(defn monkey-business
+  [n x]
   (->> x
-       parse
-       (rounds 20)
+       (rounds n)
        vals
        (map :count)
        sort
        (take-last 2)
        (reduce *)))
+
+(defn solve-part1
+  [x]
+  (binding [*div* 3]
+    (->> x
+         parse
+         (monkey-business 20))))
 
 (deftest solve-part1-test
   (is (= 10605 (solve-part1 sample))))
@@ -95,5 +106,20 @@ Monkey 3:
 
 (comment
   (solve-part1 input)
+
+  )
+
+(defn solve-part2
+  [x]
+  (binding [*div* 1]
+    (->> x
+         parse
+         (monkey-business 10000))))
+
+(deftest solve-part2-test
+  (is (= 2713310158 (solve-part2 sample))))
+
+(comment
+  (solve-part2 input)
 
   )
