@@ -96,3 +96,25 @@
 
   )
 
+(def dividers
+  #{[[2]] [[6]]})
+
+(defn solve-part2
+  [x]
+  (->> x
+       parse
+       vals
+       (concat [dividers])
+       (reduce into)
+       (sort compare)
+       (map-indexed vector)
+       (keep (fn [[i p]] (when (contains? dividers p) (inc i))))
+       (reduce *)))
+
+(deftest solve-part2-test
+  (is (= 140 (solve-part2 sample))))
+
+(comment
+  (solve-part2 input)
+
+  )
