@@ -48,26 +48,38 @@ Sensor at x=20, y=1: closest beacon is at x=15, y=3")
     (+ 1 (* 2 (- range (abs (- row y)))))))
 
 (defn positions
-  [{:keys [sensor] :as pair} row]
+  [row {:keys [sensor] :as pair}]
   (when (pos? (width pair row))
     (let [{:keys [x]} sensor
           reach (quot (width pair row) 2)]
-      (map (fn [x] {:x x :y row})
-           (range (- x reach) (+ x reach 1))))))
+      {:lo (- x reach)
+       :hi (+ x reach 1)})))
+
+(defn intersects
+  [i j]
+  (or (<= (:lo j) (:hi i))
+      (<= (:lo i) (:hi j))))
+
+(defn combine
+  [is]
+  (let [is (sort-by :lo is)]
+    (reduce
+     (fn [[interval-1 & intervals] interval-2]
+       (if (intersects interval-1 interval-2)
+         (conj intervals (assoc interval-1 :hi (max (:hi interval-1) (:hi interval-2))))
+         (conj intervals interval-1 interval-2)))
+     (list (first is))
+     (next is))))
 
 (defn solve-part1
   [row x]
   (let [parsed (parse x)
-        covered
-        (->> parsed
-             (sort-by (comp :y :sensor))
-             (filter (fn [{:keys [sensor beacon]}]
-                         (>= (distance sensor beacon)
-                             (abs (- row (:y sensor))))))
-             (mapcat (fn [pair] (positions pair row)))
-             (into #{}))
-        beacons (map :beacon parsed)]
-    (count (set/difference covered beacons))))
+        intervals (combine (keep (partial positions row) parsed))
+        sensors (into #{} (filter #(= (:y %) row) (map :sensor parsed)))
+        beacons (into #{} (filter #(= (:y %) row) (map :beacon parsed)))]
+    (- (reduce + (map (fn [{:keys [lo hi]}] (- hi lo)) intervals))
+       (count sensors)
+       (count beacons))))
 
 (deftest solve-part1-test
   (is (= 26 (solve-part1 10 sample))))
@@ -77,6 +89,29 @@ Sensor at x=20, y=1: closest beacon is at x=15, y=3")
 
 (comment
   (solve-part1 2000000 input)
+
+  )
+
+(defn solve-part2
+  [max-c x]
+  (let [parsed (parse x)]
+    (some
+     (fn [y]
+       (let [intervals
+             (->> parsed
+                  (keep (partial positions y))
+                  combine
+                  (filter (partial intersects {:lo 0 :hi max-c})))]
+         (when (< 1 (count intervals))
+           (+ (* (:hi (last intervals)) 4000000) y))))
+     (range 0 (inc max-c)))))
+
+(deftest solve-part2-test
+  (is (= 56000011
+         (solve-part2 20 sample))))
+
+(comment
+  (solve-part2 4000000 input)
 
   )
 
